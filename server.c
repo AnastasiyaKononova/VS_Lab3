@@ -7,39 +7,39 @@
 
 #define BUF_SIZE 2048
 
-void command(int sock)
+void command(int sockets)
 {
-	char buf[2048];
-	int bytes_read;
+	char bufer[2048];
+	int read;
 	FILE * file;
 	printf("Ожидание команды...\n");
-	bytes_read = recv(sock, buf, 2048, 0);
-	if(bytes_read <= 0) 
+	read = recv(sockets, bufer, 2048, 0);
+	if(read <= 0) 
 		return;
-	printf("Получена команда: %s", buf);
-	file = popen(buf, "r");
+	printf("Получена команда: %s", bufer);
+	file = popen(bufer, "r");
 	if (file == NULL) {
 		perror("Ошибка popen:\n");
 		return;
 	}
 	int len = -1;
 	while (len!= 0){
-		len = fread(buf, 1, BUF_SIZE, file);						
+		len = fread(bufer, 1, BUF_SIZE, file);						
 	}
 	pclose(file);
 	printf("Отправление принятой команды клиенту...\n\n");
-	send(sock, buf, bytes_read, 0);
+	send(sockets, bufer, read, 0);
 	close(socket);
 }
 
 int main()
 {
-	int sock, listener;
+	int sockets, listener;
 	struct sockaddr_in addr; 
 	
 	listener = socket(AF_INET, SOCK_STREAM, 0);
 	if(listener < 0){
-		perror("socket");
+		perror("Ошибка socket");
 		exit(1);
 	}
 
@@ -47,30 +47,30 @@ int main()
 	addr.sin_port = htons(3425);
 	addr.sin_addr.s_addr=inet_addr("127.0.0.1");
 	if(bind(listener, (struct sockaddr *)&addr, sizeof(addr)) < 0){
-		perror("bind");
+		perror("Ошибка bind");
 		exit(2);
 	}
 
 	listen(listener, 1);
 	while(1){
-		sock = accept(listener, NULL, NULL);
-		if(sock < 0){
+		sockets = accept(listener, NULL, NULL);
+		if(sockets < 0){
 			perror("Прием входящих подключений");
 			exit(3);
 		}
  		#ifdef PROCESS
-			pid_t childId = 0;
-			if ((childId=fork())==-1) {
-				perror("fork");
+			pid_t child = 0;
+			if ((child=fork())==-1) {
+				perror("Ошибка fork");
 				exit(1);
 			}
-			if (childId == 0) {
-				command(sock);
+			if (child == 0) {
+				command(sockets);
 				return 0;
 			}
 		#else
 			pthread_t thread1;
-			int result = pthread_create(&thread1, NULL, command, sock);
+			int result = pthread_create(&thread1, NULL, command, sockets);
 			if (result != 0) {
 				perror("Ошибка создания потока");
 			}
